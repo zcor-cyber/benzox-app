@@ -72,17 +72,17 @@ app.post('/api/register', validateRegistration, async (req, res) => {
     // Hash password
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    // Create user
-    const user = dataStore.createUser(username, hashedPassword);
-    
-    // Generate JWT token
-    const token = jwt.sign({ id: user.id, username }, JWT_SECRET, { expiresIn: '24h' });
-    
-    res.status(201).json({
-      message: 'User created successfully',
-      token,
-      user: { id: user.id, username }
-    });
+         // Create user
+     const user = await dataStore.createUser(username, hashedPassword);
+     
+     // Generate JWT token
+     const token = jwt.sign({ id: user._id.toString(), username }, JWT_SECRET, { expiresIn: '24h' });
+     
+     res.status(201).json({
+       message: 'User created successfully',
+       token,
+       user: { id: user._id.toString(), username }
+     });
   } catch (error) {
     console.error('Registration error:', error);
     if (error.message === 'Username already exists') {
@@ -115,14 +115,14 @@ app.post('/api/login', validateLogin, async (req, res) => {
       return res.status(400).json({ error: 'Invalid credentials' });
     }
 
-    // Generate JWT token
-    const token = jwt.sign({ id: user.id, username: user.username }, JWT_SECRET, { expiresIn: '24h' });
-    
-    res.json({
-      message: 'Login successful',
-      token,
-      user: { id: user.id, username: user.username }
-    });
+         // Generate JWT token
+     const token = jwt.sign({ id: user._id.toString(), username: user.username }, JWT_SECRET, { expiresIn: '24h' });
+     
+     res.json({
+       message: 'Login successful',
+       token,
+       user: { id: user._id.toString(), username: user.username }
+     });
   } catch (error) {
     console.error('Login error:', error);
     res.status(500).json({ error: 'Server error' });
@@ -138,13 +138,13 @@ app.get('/api/profile', authenticateToken, async (req, res) => {
       return res.status(404).json({ error: 'User not found' });
     }
     
-    res.json({ 
-      user: {
-        id: user._id,
-        username: user.username,
-        created_at: user.created_at
-      }
-    });
+         res.json({ 
+       user: {
+         id: user._id.toString(),
+         username: user.username,
+         created_at: user.created_at
+       }
+     });
   } catch (error) {
     console.error('Profile error:', error);
     res.status(500).json({ error: 'Database error' });
@@ -221,7 +221,7 @@ app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
   console.log(`App available at: http://localhost:${PORT}`);
   console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
-  console.log(`Data store path: ${dataStore.dataPath}`);
+  console.log(`MongoDB database: ${dataStore.dbName}`);
 });
 
 // Add a simple health check endpoint
