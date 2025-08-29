@@ -11,7 +11,7 @@ const PORT = process.env.PORT || 3002;
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-production';
 
 // Production database path
-const DB_PATH = process.env.NODE_ENV === 'production' ? '/opt/render/project/src/users.db' : './users.db';
+const DB_PATH = process.env.NODE_ENV === 'production' ? './users.db' : './users.db';
 
 // Middleware
 app.use(cors());
@@ -19,7 +19,13 @@ app.use(express.json());
 app.use(express.static('.'));
 
 // Database setup
-const db = new sqlite3.Database(DB_PATH);
+const db = new sqlite3.Database(DB_PATH, (err) => {
+  if (err) {
+    console.error('Error opening database:', err.message);
+  } else {
+    console.log('Connected to SQLite database');
+  }
+});
 
 // Create users table
 db.serialize(() => {
@@ -212,6 +218,17 @@ app.get('*', (req, res) => {
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
   console.log(`App available at: http://localhost:${PORT}`);
+  console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
+  console.log(`Database path: ${DB_PATH}`);
+});
+
+// Add a simple health check endpoint
+app.get('/api/health', (req, res) => {
+  res.json({ 
+    status: 'ok', 
+    timestamp: new Date().toISOString(),
+    environment: process.env.NODE_ENV || 'development'
+  });
 });
 
 // Graceful shutdown
