@@ -1,0 +1,9 @@
+[build]
+publish = "."
+command = "echo 'Already built - skipping build step'"
+
+[[redirects]]
+from = "/*"
+to = "/index.html"
+status = 200
+force = false

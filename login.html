@@ -1,0 +1,454 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1" />
+    <script type="module" crossorigin src="/assets/index-BT_t6EUf.js"></script>
+    <link rel="stylesheet" crossorigin href="/assets/index-DGdYuyAQ.css">
+    <style>
+      .login-container {
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: #050505;
+        font-family: "SF Pro Display", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+        color: #fafafa;
+        padding: 20px;
+      }
+      
+      .login-card {
+        background: #080808;
+        border: 1px solid hsl(0,0%,8%);
+        border-radius: 16px;
+        padding: 40px;
+        width: 100%;
+        max-width: 450px;
+        box-shadow: 0 20px 40px rgba(0,0,0,0.3);
+      }
+      
+      .login-header {
+        text-align: center;
+        margin-bottom: 32px;
+      }
+      
+      .login-title {
+        font-size: 28px;
+        font-weight: 700;
+        color: #fafafa;
+        margin-bottom: 8px;
+        letter-spacing: -0.02em;
+      }
+      
+      .login-subtitle {
+        font-size: 16px;
+        color: #94a3b8;
+        font-weight: 400;
+      }
+      
+      .form-toggle {
+        display: flex;
+        background: #0a0a0a;
+        border-radius: 8px;
+        padding: 4px;
+        margin-bottom: 24px;
+      }
+      
+      .toggle-btn {
+        flex: 1;
+        padding: 12px;
+        background: transparent;
+        border: none;
+        color: #94a3b8;
+        font-weight: 600;
+        cursor: pointer;
+        border-radius: 6px;
+        transition: all 0.2s ease;
+        font-family: inherit;
+      }
+      
+      .toggle-btn.active {
+        background: #3c83f6;
+        color: #fff;
+      }
+      
+      .login-form, .register-form {
+        display: flex;
+        flex-direction: column;
+        gap: 20px;
+      }
+      
+      .form-group {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+      }
+      
+      .form-label {
+        font-size: 14px;
+        font-weight: 600;
+        color: #c0cdde;
+      }
+      
+      .form-input {
+        padding: 16px;
+        background: #0a0a0a;
+        border: 1px solid hsl(0,0%,12%);
+        border-radius: 8px;
+        color: #fafafa;
+        font-size: 16px;
+        transition: all 0.2s ease;
+        font-family: inherit;
+      }
+      
+      .form-input:focus {
+        outline: none;
+        border-color: #3c83f6;
+        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+      }
+      
+      .form-input::placeholder {
+        color: #64748b;
+      }
+      
+      .submit-button {
+        background: linear-gradient(135deg, #3c83f6, #a855f7);
+        color: #fff;
+        border: none;
+        padding: 16px;
+        border-radius: 8px;
+        font-size: 16px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        font-family: inherit;
+        margin-top: 8px;
+      }
+      
+      .submit-button:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 25px rgba(59, 130, 246, 0.3);
+      }
+      
+      .submit-button:active {
+        transform: translateY(0);
+      }
+      
+      .submit-button:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+        transform: none;
+      }
+      
+      .error-message {
+        background: #ef44441a;
+        border: 1px solid rgba(239, 68, 68, 0.3);
+        color: #fca5a5;
+        padding: 12px;
+        border-radius: 8px;
+        font-size: 14px;
+        text-align: center;
+        display: none;
+      }
+      
+      .success-message {
+        background: #22c55e1a;
+        border: 1px solid rgba(34, 197, 94, 0.3);
+        color: #86efac;
+        padding: 12px;
+        border-radius: 8px;
+        font-size: 14px;
+        text-align: center;
+        display: none;
+      }
+      
+      .loading {
+        display: inline-block;
+        width: 16px;
+        height: 16px;
+        border: 2px solid #ffffff40;
+        border-radius: 50%;
+        border-top-color: #fff;
+        animation: spin 1s ease-in-out infinite;
+        margin-right: 8px;
+      }
+      
+      @keyframes spin {
+        to { transform: rotate(360deg); }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="login-container">
+      <div class="login-card">
+        <div class="login-header">
+          <h1 class="login-title">Benzox</h1>
+          <p class="login-subtitle">Logg inn eller registrer deg</p>
+        </div>
+        
+        <div class="form-toggle">
+          <button class="toggle-btn active" onclick="showForm('login')">Logg inn</button>
+          <button class="toggle-btn" onclick="showForm('register')">Registrer</button>
+        </div>
+        
+        <div id="errorMessage" class="error-message"></div>
+        <div id="successMessage" class="success-message"></div>
+        
+        <!-- Login Form -->
+        <form class="login-form" id="loginForm">
+          <div class="form-group">
+            <label for="loginUsername" class="form-label">Brukernavn eller E-post</label>
+            <input 
+              type="text" 
+              id="loginUsername" 
+              name="username" 
+              class="form-input" 
+              placeholder="Skriv inn brukernavn eller e-post"
+              required
+            >
+          </div>
+          
+          <div class="form-group">
+            <label for="loginPassword" class="form-label">Passord</label>
+            <input 
+              type="password" 
+              id="loginPassword" 
+              name="password" 
+              class="form-input" 
+              placeholder="Skriv inn passord"
+              required
+            >
+          </div>
+          
+          <button type="submit" class="submit-button" id="loginBtn">
+            <span class="btn-text">Logg inn</span>
+          </button>
+        </form>
+        
+        <!-- Register Form -->
+        <form class="register-form" id="registerForm" style="display: none;">
+          <div class="form-group">
+            <label for="registerUsername" class="form-label">Brukernavn</label>
+            <input 
+              type="text" 
+              id="registerUsername" 
+              name="username" 
+              class="form-input" 
+              placeholder="Velg et brukernavn (minst 3 tegn)"
+              required
+            >
+          </div>
+          
+
+          
+          <div class="form-group">
+            <label for="registerPassword" class="form-label">Passord</label>
+            <input 
+              type="password" 
+              id="registerPassword" 
+              name="password" 
+              class="form-input" 
+              placeholder="Velg et passord (minst 6 tegn)"
+              required
+            >
+          </div>
+          
+          <button type="submit" class="submit-button" id="registerBtn">
+            <span class="btn-text">Registrer deg</span>
+          </button>
+        </form>
+      </div>
+    </div>
+
+    <script src="/config.js"></script>
+    <script>
+      const API_BASE = window.APP_CONFIG.API_BASE;
+      
+      // Form toggle functionality
+      function showForm(formType) {
+        const loginForm = document.getElementById('loginForm');
+        const registerForm = document.getElementById('registerForm');
+        const loginBtn = document.querySelector('.toggle-btn:first-child');
+        const registerBtn = document.querySelector('.toggle-btn:last-child');
+        
+        if (formType === 'login') {
+          loginForm.style.display = 'flex';
+          registerForm.style.display = 'none';
+          loginBtn.classList.add('active');
+          registerBtn.classList.remove('active');
+        } else {
+          loginForm.style.display = 'none';
+          registerForm.style.display = 'flex';
+          loginBtn.classList.remove('active');
+          registerBtn.classList.add('active');
+        }
+        
+        // Clear messages
+        hideMessages();
+      }
+      
+      // Message handling
+      function showError(message) {
+        const errorDiv = document.getElementById('errorMessage');
+        errorDiv.textContent = message;
+        errorDiv.style.display = 'block';
+        setTimeout(() => errorDiv.style.display = 'none', 5000);
+      }
+      
+      function showSuccess(message) {
+        const successDiv = document.getElementById('successMessage');
+        successDiv.textContent = message;
+        successDiv.style.display = 'block';
+        setTimeout(() => successDiv.style.display = 'none', 3000);
+      }
+      
+      function hideMessages() {
+        document.getElementById('errorMessage').style.display = 'none';
+        document.getElementById('successMessage').style.display = 'none';
+      }
+      
+      // Loading state
+      function setLoading(button, isLoading) {
+        const btnText = button.querySelector('.btn-text');
+        if (isLoading) {
+          button.disabled = true;
+          btnText.innerHTML = '<span class="loading"></span>Laster...';
+        } else {
+          button.disabled = false;
+          btnText.textContent = button.id === 'loginBtn' ? 'Logg inn' : 'Registrer deg';
+        }
+      }
+      
+      // Login form submission
+      document.getElementById('loginForm').addEventListener('submit', async function(e) {
+        e.preventDefault();
+        
+        const button = document.getElementById('loginBtn');
+        const username = document.getElementById('loginUsername').value.trim();
+        const password = document.getElementById('loginPassword').value.trim();
+        
+        if (!username || !password) {
+          showError('Vennligst fyll ut alle feltene');
+          return;
+        }
+        
+        setLoading(button, true);
+        
+        try {
+          const response = await fetch(`${API_BASE}/login`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ username, password })
+          });
+          
+          const data = await response.json();
+          
+          if (response.ok) {
+            // Store token and user info
+            localStorage.setItem('benzox_token', data.token);
+            localStorage.setItem('benzox_logged_in', 'true');
+            localStorage.setItem('benzox_username', data.user.username);
+            localStorage.setItem('benzox_user_id', data.user.id);
+            
+            showSuccess('Innlogging vellykket! Omdirigerer...');
+            
+            // Redirect to main app
+            setTimeout(() => {
+              window.location.href = '/';
+            }, 1000);
+          } else {
+            showError(data.error || 'Innlogging mislyktes');
+          }
+        } catch (error) {
+          showError('Nettverksfeil. Sjekk at serveren kjører.');
+        } finally {
+          setLoading(button, false);
+        }
+      });
+      
+      // Register form submission
+      document.getElementById('registerForm').addEventListener('submit', async function(e) {
+        e.preventDefault();
+        
+        const button = document.getElementById('registerBtn');
+        const username = document.getElementById('registerUsername').value.trim();
+        const password = document.getElementById('registerPassword').value.trim();
+        
+        if (!username || !password) {
+          showError('Vennligst fyll ut alle feltene');
+          return;
+        }
+        
+        if (username.length < 3) {
+          showError('Brukernavn må være minst 3 tegn');
+          return;
+        }
+        
+        if (password.length < 6) {
+          showError('Passord må være minst 6 tegn');
+          return;
+        }
+        
+        setLoading(button, true);
+        
+        try {
+          const response = await fetch(`${API_BASE}/register`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ username, password })
+          });
+          
+          const data = await response.json();
+          
+          if (response.ok) {
+            showSuccess('Registrering vellykket! Du kan nå logge inn.');
+            
+            // Clear form and switch to login
+            document.getElementById('registerForm').reset();
+            showForm('login');
+          } else {
+            showError(data.error || 'Registrering mislyktes');
+          }
+        } catch (error) {
+          showError('Nettverksfeil. Sjekk at serveren kjører.');
+        } finally {
+          setLoading(button, false);
+        }
+      });
+      
+      // Check if user is already logged in
+      window.addEventListener('DOMContentLoaded', function() {
+        const token = localStorage.getItem('benzox_token');
+        if (token) {
+          // Verify token is still valid
+          fetch(`${API_BASE}/profile`, {
+            headers: {
+              'Authorization': `Bearer ${token}`
+            }
+          }).then(response => {
+            if (response.ok) {
+              // Token is valid, redirect to main app
+              window.location.href = '/';
+            } else {
+              // Token is invalid, clear it
+              localStorage.removeItem('benzox_token');
+              localStorage.removeItem('benzox_logged_in');
+              localStorage.removeItem('benzox_username');
+              localStorage.removeItem('benzox_user_id');
+            }
+          }).catch(() => {
+            // Network error, clear token
+            localStorage.removeItem('benzox_token');
+            localStorage.removeItem('benzox_logged_in');
+            localStorage.removeItem('benzox_username');
+            localStorage.removeItem('benzox_user_id');
+          });
+        }
+      });
+    </script>
+  </body>
+</html>

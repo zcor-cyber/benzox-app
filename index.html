@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1" />
+    <script type="module" crossorigin src="/assets/index-BT_t6EUf.js"></script>
+    <link rel="stylesheet" crossorigin href="/assets/index-DGdYuyAQ.css">
+    <style>
+      .auth-check {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: #050505;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 9999;
+        font-family: "SF Pro Display", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+        color: #fafafa;
+      }
+      
+      .auth-spinner {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 16px;
+      }
+      
+      .spinner {
+        width: 40px;
+        height: 40px;
+        border: 3px solid #3c83f6;
+        border-top: 3px solid transparent;
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+      }
+      
+      @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+      }
+      
+      .logout-btn {
+        position: fixed;
+        bottom: 20px;
+        left: 20px;
+        background: rgba(239, 68, 68, 0.2);
+        border: 1px solid rgba(239, 68, 68, 0.4);
+        color: #fca5a5;
+        padding: 12px 20px;
+        border-radius: 8px;
+        font-size: 14px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        z-index: 1000;
+        font-family: inherit;
+        display: none;
+      }
+      
+      .logout-btn:hover {
+        background: rgba(239, 68, 68, 0.3);
+        transform: translateY(-1px);
+      }
+      
+      .user-info {
+        position: fixed;
+        bottom: 20px;
+        left: 20px;
+        background: rgba(59, 130, 246, 0.2);
+        border: 1px solid rgba(59, 130, 246, 0.4);
+        color: #93c5fd;
+        padding: 12px 20px;
+        border-radius: 8px;
+        font-size: 14px;
+        font-weight: 600;
+        z-index: 1000;
+        font-family: inherit;
+        display: none;
+        margin-bottom: 70px;
+      }
+    </style>
+  </head>
+  <body>
+    <!-- Authentication Check Overlay -->
+    <div id="authCheck" class="auth-check">
+      <div class="auth-spinner">
+        <div class="spinner"></div>
+        <div>Sjekker autentisering...</div>
+      </div>
+    </div>
+
+    <!-- User Info -->
+    <div id="userInfo" class="user-info">
+       <span id="username"></span>
+    </div>
+
+    <!-- Logout Button -->
+    <button id="logoutBtn" class="logout-btn" onclick="logout()">
+       Logg ut
+    </button>
+
+    <div id="root"></div>
+    <!-- This is a replit script which adds a banner on the top of the page when opened in development mode outside the replit environment -->
+
+    <script type="text/javascript" src="https://replit.com/public/js/replit-dev-banner.js"></script>
+    
+    <script src="/config.js"></script>
+    <script>
+      // Immediate authentication check
+      function checkAuth() {
+        const token = localStorage.getItem("benzox_token");
+        const username = localStorage.getItem("benzox_username");
+        
+        if (!token || !username) {
+          // Not logged in, redirect to login immediately
+          window.location.href = "/login.html";
+          return;
+        }
+        
+        // Verify token with backend
+        fetch(window.APP_CONFIG.API_BASE.replace('/api', '') + '/api/profile', {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        }).then(response => {
+          if (response.ok) {
+            // Token is valid, show app
+            document.getElementById("authCheck").style.display = "none";
+            document.getElementById("logoutBtn").style.display = "block";
+            document.getElementById("userInfo").style.display = "block";
+            document.getElementById("username").textContent = username;
+            
+            // Show the main app content
+            document.getElementById("root").style.display = "block";
+          } else {
+            // Token is invalid, redirect to login
+            localStorage.removeItem("benzox_token");
+            localStorage.removeItem("benzox_logged_in");
+            localStorage.removeItem("benzox_username");
+            localStorage.removeItem("benzox_user_id");
+            window.location.href = "/login.html";
+          }
+        }).catch(() => {
+          // Network error, redirect to login
+          localStorage.removeItem("benzox_token");
+          localStorage.removeItem("benzox_logged_in");
+          localStorage.removeItem("benzox_username");
+          localStorage.removeItem("benzox_user_id");
+          window.location.href = "/login.html";
+        });
+      }
+      
+      function logout() {
+        // Clear login state
+        localStorage.removeItem("benzox_token");
+        localStorage.removeItem("benzox_logged_in");
+        localStorage.removeItem("benzox_username");
+        localStorage.removeItem("benzox_user_id");
+        
+        // Redirect to login
+        window.location.href = "/login.html";
+      }
+      
+      // Check authentication immediately when page loads
+      document.addEventListener("DOMContentLoaded", function() {
+        // Hide root initially
+        document.getElementById("root").style.display = "none";
+        
+        // Check auth immediately
+        checkAuth();
+      });
+      
+      // Also check on page visibility change (when user returns to tab)
+      document.addEventListener("visibilitychange", function() {
+        if (!document.hidden) {
+          checkAuth();
+        }
+      });
+    </script>
+  </body>
+</html>
