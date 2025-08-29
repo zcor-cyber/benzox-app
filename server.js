@@ -1,50 +1,24 @@
 const express = require('express');
 const bcrypt = require('bcryptjs');
-const sqlite3 = require('sqlite3').verbose();
 const cors = require('cors');
 const jwt = require('jsonwebtoken');
 const { body, validationResult } = require('express-validator');
 const path = require('path');
+const DataStore = require('./data-store');
 
 const app = express();
 const PORT = process.env.PORT || 3002;
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-production';
-
-// Production database path
-const DB_PATH = process.env.NODE_ENV === 'production' ? './users.db' : './users.db';
 
 // Middleware
 app.use(cors());
 app.use(express.json());
 app.use(express.static('.'));
 
-// Database setup
-const db = new sqlite3.Database(DB_PATH, (err) => {
-  if (err) {
-    console.error('Error opening database:', err.message);
-  } else {
-    console.log('Connected to SQLite database');
-  }
-});
-
-// Create users table
-db.serialize(() => {
-  db.run(`CREATE TABLE IF NOT EXISTS users (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    username TEXT UNIQUE NOT NULL,
-    password TEXT NOT NULL,
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-  )`);
-  
-  db.run(`CREATE TABLE IF NOT EXISTS user_data (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    user_id INTEGER,
-    data_type TEXT NOT NULL,
-    data_content TEXT,
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (user_id) REFERENCES users (id)
-  )`);
-});
+// Initialize data store
+const dataStore = new DataStore();
+console.log('Data store initialized');
+console.log('Environment:', process.env.NODE_ENV || 'development');
 
 // Validation middleware
 const validateRegistration = [
@@ -87,38 +61,27 @@ app.post('/api/register', validateRegistration, async (req, res) => {
   const { username, password } = req.body;
 
   try {
-          // Check if user already exists
-      db.get('SELECT id FROM users WHERE username = ?', [username], async (err, row) => {
-      if (err) {
-        return res.status(500).json({ error: 'Database error' });
-      }
-      
-              if (row) {
-          return res.status(400).json({ error: 'Username already exists' });
-        }
+    // Hash password
+    const hashedPassword = await bcrypt.hash(password, 10);
 
-      // Hash password
-      const hashedPassword = await bcrypt.hash(password, 10);
-
-              // Insert new user
-        db.run('INSERT INTO users (username, password) VALUES (?, ?)', 
-          [username, hashedPassword], function(err) {
-        if (err) {
-          return res.status(500).json({ error: 'Failed to create user' });
-        }
-
-        // Generate JWT token
-        const token = jwt.sign({ id: this.lastID, username }, JWT_SECRET, { expiresIn: '24h' });
-        
-        res.status(201).json({
-          message: 'User created successfully',
-          token,
-          user: { id: this.lastID, username }
-        });
-      });
+    // Create user
+    const user = dataStore.createUser(username, hashedPassword);
+    
+    // Generate JWT token
+    const token = jwt.sign({ id: user.id, username }, JWT_SECRET, { expiresIn: '24h' });
+    
+    res.status(201).json({
+      message: 'User created successfully',
+      token,
+      user: { id: user.id, username }
     });
   } catch (error) {
-    res.status(500).json({ error: 'Server error' });
+    console.error('Registration error:', error);
+    if (error.message === 'Username already exists') {
+      res.status(400).json({ error: 'Username already exists' });
+    } else {
+      res.status(500).json({ error: 'Server error' });
+    }
   }
 });
 
@@ -131,11 +94,9 @@ app.post('/api/login', validateLogin, (req, res) => {
 
   const { username, password } = req.body;
 
-  db.get('SELECT * FROM users WHERE username = ?', [username], async (err, user) => {
-    if (err) {
-      return res.status(500).json({ error: 'Database error' });
-    }
-
+  try {
+    const user = dataStore.findUser(username);
+    
     if (!user) {
       return res.status(401).json({ error: 'Invalid credentials' });
     }
@@ -154,22 +115,32 @@ app.post('/api/login', validateLogin, (req, res) => {
       token,
       user: { id: user.id, username: user.username }
     });
-  });
+  } catch (error) {
+    console.error('Login error:', error);
+    res.status(500).json({ error: 'Server error' });
+  }
 });
 
 // Get user profile
 app.get('/api/profile', authenticateToken, (req, res) => {
-  db.get('SELECT id, username, created_at FROM users WHERE id = ?', [req.user.id], (err, user) => {
-    if (err) {
-      return res.status(500).json({ error: 'Database error' });
-    }
+  try {
+    const user = dataStore.findUserById(req.user.id);
     
     if (!user) {
       return res.status(404).json({ error: 'User not found' });
     }
     
-    res.json({ user });
-  });
+    res.json({ 
+      user: {
+        id: user.id,
+        username: user.username,
+        created_at: user.created_at
+      }
+    });
+  } catch (error) {
+    console.error('Profile error:', error);
+    res.status(500).json({ error: 'Database error' });
+  }
 });
 
 // Save user data
@@ -180,33 +151,28 @@ app.post('/api/data', authenticateToken, (req, res) => {
     return res.status(400).json({ error: 'Data type and content are required' });
   }
 
-  db.run('INSERT INTO user_data (user_id, data_type, data_content) VALUES (?, ?, ?)', 
-    [req.user.id, dataType, JSON.stringify(dataContent)], function(err) {
-    if (err) {
-      return res.status(500).json({ error: 'Failed to save data' });
-    }
+  try {
+    const result = dataStore.saveUserData(req.user.id, dataType, dataContent);
     
-    res.json({ message: 'Data saved successfully', id: this.lastID });
-  });
+    res.json({ message: 'Data saved successfully', id: result.id });
+  } catch (error) {
+    console.error('Save data error:', error);
+    res.status(500).json({ error: 'Failed to save data' });
+  }
 });
 
 // Get user data
 app.get('/api/data/:dataType', authenticateToken, (req, res) => {
   const { dataType } = req.params;
   
-  db.all('SELECT * FROM user_data WHERE user_id = ? AND data_type = ? ORDER BY created_at DESC', 
-    [req.user.id, dataType], (err, rows) => {
-    if (err) {
-      return res.status(500).json({ error: 'Database error' });
-    }
-    
-    const data = rows.map(row => ({
-      ...row,
-      data_content: JSON.parse(row.data_content)
-    }));
+  try {
+    const data = dataStore.getUserData(req.user.id, dataType);
     
     res.json({ data });
-  });
+  } catch (error) {
+    console.error('Get data error:', error);
+    res.status(500).json({ error: 'Database error' });
+  }
 });
 
 // Serve the main app
@@ -224,15 +190,18 @@ app.listen(PORT, () => {
 
 // Add a simple health check endpoint
 app.get('/api/health', (req, res) => {
+  const stats = dataStore.getStats();
   res.json({ 
     status: 'ok', 
     timestamp: new Date().toISOString(),
-    environment: process.env.NODE_ENV || 'development'
+    environment: process.env.NODE_ENV || 'development',
+    stats
   });
 });
 
 // Graceful shutdown
 process.on('SIGINT', () => {
-  db.close();
+  console.log('Saving data before shutdown...');
+  dataStore.saveData();
   process.exit(0);
 });
