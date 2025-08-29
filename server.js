@@ -86,7 +86,7 @@ app.post('/api/register', validateRegistration, async (req, res) => {
 });
 
 // User login
-app.post('/api/login', validateLogin, (req, res) => {
+app.post('/api/login', validateLogin, async (req, res) => {
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
     return res.status(400).json({ errors: errors.array() });
@@ -104,7 +104,7 @@ app.post('/api/login', validateLogin, (req, res) => {
     // Check password
     const isValidPassword = await bcrypt.compare(password, user.password);
     if (!isValidPassword) {
-      return res.status(401).json({ error: 'Invalid credentials' });
+      return res.status(400).json({ error: 'Invalid credentials' });
     }
 
     // Generate JWT token
