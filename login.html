@@ -352,12 +352,32 @@
             localStorage.setItem('benzox_username', data.user.username);
             localStorage.setItem('benzox_user_id', data.user.id);
             
-            showSuccess('Innlogging vellykket! Omdirigerer...');
+            showSuccess('Innlogging vellykket! Henter brukerdata...');
+            
+            // Fetch user data from server
+            try {
+              const dataResponse = await fetch(`${API_BASE}/user/all-data`, {
+                headers: {
+                  'Authorization': `Bearer ${data.token}`
+                }
+              });
+              
+              if (dataResponse.ok) {
+                const userData = await dataResponse.json();
+                // Store user data in localStorage for offline access
+                localStorage.setItem('benzox_user_data', JSON.stringify(userData.data));
+                console.log('User data synced from server:', userData.data.length, 'items');
+                showSuccess('Brukerdata hentet! Omdirigerer...');
+              }
+            } catch (error) {
+              console.error('Error fetching user data:', error);
+              showSuccess('Innlogging vellykket! Omdirigerer...');
+            }
             
             // Redirect to main app
             setTimeout(() => {
               window.location.href = '/';
-            }, 1000);
+            }, 2000);
           } else {
             showError(data.error || 'Innlogging mislyktes');
           }

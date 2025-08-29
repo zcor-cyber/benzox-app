@@ -175,6 +175,34 @@ app.get('/api/data/:dataType', authenticateToken, (req, res) => {
   }
 });
 
+// Get all user data and summary
+app.get('/api/user/summary', authenticateToken, (req, res) => {
+  try {
+    const summary = dataStore.getUserSummary(req.user.id);
+    
+    if (!summary) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+    
+    res.json(summary);
+  } catch (error) {
+    console.error('Get user summary error:', error);
+    res.status(500).json({ error: 'Database error' });
+  }
+});
+
+// Get all user data
+app.get('/api/user/all-data', authenticateToken, (req, res) => {
+  try {
+    const allData = dataStore.getAllUserData(req.user.id);
+    
+    res.json({ data: allData });
+  } catch (error) {
+    console.error('Get all user data error:', error);
+    res.status(500).json({ error: 'Database error' });
+  }
+});
+
 // Serve the main app
 app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, 'index.html'));

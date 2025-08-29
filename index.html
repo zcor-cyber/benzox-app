@@ -120,14 +120,27 @@
           return;
         }
         
-        // Verify token with backend
-        fetch(window.APP_CONFIG.API_BASE.replace('/api', '') + '/api/profile', {
-          headers: {
-            'Authorization': `Bearer ${token}`
-          }
-        }).then(response => {
-          if (response.ok) {
-            // Token is valid, show app
+        // Verify token with backend and sync user data
+        Promise.all([
+          fetch(window.APP_CONFIG.API_BASE.replace('/api', '') + '/api/profile', {
+            headers: {
+              'Authorization': `Bearer ${token}`
+            }
+          }),
+          fetch(window.APP_CONFIG.API_BASE.replace('/api', '') + '/api/user/all-data', {
+            headers: {
+              'Authorization': `Bearer ${token}`
+            }
+          })
+        ]).then(([profileResponse, dataResponse]) => {
+          if (profileResponse.ok && dataResponse.ok) {
+            // Token is valid, sync user data
+            dataResponse.json().then(userData => {
+              localStorage.setItem('benzox_user_data', JSON.stringify(userData.data));
+              console.log('User data synced on page load:', userData.data.length, 'items');
+            });
+            
+            // Show app
             document.getElementById("authCheck").style.display = "none";
             document.getElementById("logoutBtn").style.display = "block";
             document.getElementById("userInfo").style.display = "block";
