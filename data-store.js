@@ -7,26 +7,45 @@ class DataStore {
     this.dataPath = process.env.NODE_ENV === 'production' ? '/tmp/benzox-data.json' : './benzox-data.json';
     this.data = this.loadData();
     console.log(`Data store initialized at: ${this.dataPath}`);
+    console.log(`Current data: ${this.data.users.length} users, ${this.data.userData.length} data entries`);
+    
+    // Auto-save every 30 seconds to prevent data loss
+    setInterval(() => {
+      this.saveData();
+    }, 30000);
   }
 
   loadData() {
     try {
       if (fs.existsSync(this.dataPath)) {
         const fileContent = fs.readFileSync(this.dataPath, 'utf8');
-        return JSON.parse(fileContent);
+        const parsed = JSON.parse(fileContent);
+        console.log(`Loaded existing data: ${parsed.users.length} users, ${parsed.userData.length} data entries`);
+        return parsed;
       }
     } catch (error) {
       console.error('Error loading data:', error);
     }
-    return {
+    
+    const defaultData = {
       users: [],
       userData: []
     };
+    
+    console.log('Created new data store with default structure');
+    return defaultData;
   }
 
   saveData() {
     try {
-      fs.writeFileSync(this.dataPath, JSON.stringify(this.data, null, 2));
+      const dataToSave = {
+        users: this.data.users,
+        userData: this.data.userData,
+        lastSaved: new Date().toISOString(),
+        version: '1.0'
+      };
+      
+      fs.writeFileSync(this.dataPath, JSON.stringify(dataToSave, null, 2));
       console.log(`Data saved successfully to ${this.dataPath}`);
       console.log(`Current stats: ${this.data.users.length} users, ${this.data.userData.length} data entries`);
     } catch (error) {
@@ -36,8 +55,11 @@ class DataStore {
 
   // User methods
   createUser(username, password) {
+    console.log(`Creating user: ${username}`);
+    
     const existingUser = this.data.users.find(u => u.username === username);
     if (existingUser) {
+      console.log(`User ${username} already exists`);
       throw new Error('Username already exists');
     }
 
@@ -49,20 +71,28 @@ class DataStore {
     };
 
     this.data.users.push(user);
+    console.log(`User ${username} created with ID: ${user.id}`);
+    
     this.saveData();
     return user;
   }
 
   findUser(username) {
-    return this.data.users.find(u => u.username === username);
+    const user = this.data.users.find(u => u.username === username);
+    console.log(`Looking for user: ${username}, found: ${user ? 'yes' : 'no'}`);
+    return user;
   }
 
   findUserById(id) {
-    return this.data.users.find(u => u.id === id);
+    const user = this.data.users.find(u => u.id === id);
+    console.log(`Looking for user by ID: ${id}, found: ${user ? 'yes' : 'no'}`);
+    return user;
   }
 
   // User data methods
   saveUserData(userId, dataType, dataContent) {
+    console.log(`Saving data for user ${userId}, type: ${dataType}`);
+    
     const dataEntry = {
       id: Date.now() + Math.random(),
       user_id: userId,
@@ -72,27 +102,38 @@ class DataStore {
     };
 
     this.data.userData.push(dataEntry);
+    console.log(`Data saved with ID: ${dataEntry.id}`);
+    
     this.saveData();
     return dataEntry;
   }
 
   getUserData(userId, dataType) {
-    return this.data.userData
+    const data = this.data.userData
       .filter(d => d.user_id === userId && d.data_type === dataType)
       .sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+    
+    console.log(`Getting data for user ${userId}, type ${dataType}: ${data.length} entries found`);
+    return data;
   }
 
   // Get all data for a user
   getAllUserData(userId) {
-    return this.data.userData
+    const data = this.data.userData
       .filter(d => d.user_id === userId)
       .sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+    
+    console.log(`Getting all data for user ${userId}: ${data.length} total entries found`);
+    return data;
   }
 
   // Get user summary with data count
   getUserSummary(userId) {
     const user = this.data.users.find(u => u.id === userId);
-    if (!user) return null;
+    if (!user) {
+      console.log(`User ${userId} not found for summary`);
+      return null;
+    }
     
     const userData = this.getAllUserData(userId);
     const dataByType = {};
@@ -104,7 +145,7 @@ class DataStore {
       dataByType[item.data_type].push(item);
     });
     
-    return {
+    const summary = {
       user: {
         id: user.id,
         username: user.username,
@@ -116,15 +157,37 @@ class DataStore {
         latest: dataByType[type][0]
       }))
     };
+    
+    console.log(`Generated summary for user ${userId}: ${summary.dataSummary.length} data types`);
+    return summary;
   }
 
   // Health check
   getStats() {
-    return {
+    const stats = {
       userCount: this.data.users.length,
       dataCount: this.data.userData.length,
-      lastSave: new Date().toISOString()
+      lastSave: new Date().toISOString(),
+      dataPath: this.dataPath,
+      environment: process.env.NODE_ENV || 'development'
     };
+    
+    console.log(`Stats requested: ${stats.userCount} users, ${stats.dataCount} data entries`);
+    return stats;
+  }
+
+  // Debug method to show all data
+  debugData() {
+    console.log('=== DATA STORE DEBUG ===');
+    console.log(`Path: ${this.dataPath}`);
+    console.log(`Users:`, this.data.users.map(u => ({ id: u.id, username: u.username })));
+    console.log(`User Data:`, this.data.userData.map(d => ({ 
+      id: d.id, 
+      user_id: d.user_id, 
+      type: d.data_type, 
+      content: d.data_content 
+    })));
+    console.log('=== END DEBUG ===');
   }
 }
 

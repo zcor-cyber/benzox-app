@@ -227,6 +227,52 @@ app.get('/api/health', (req, res) => {
   });
 });
 
+// Debug endpoint to see all data
+app.get('/api/debug', (req, res) => {
+  try {
+    dataStore.debugData();
+    const stats = dataStore.getStats();
+    res.json({ 
+      message: 'Debug data logged to console',
+      stats,
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    console.error('Debug error:', error);
+    res.status(500).json({ error: 'Debug failed' });
+  }
+});
+
+// Test endpoint to create sample data
+app.post('/api/test/create-sample-data', authenticateToken, (req, res) => {
+  try {
+    const userId = req.user.id;
+    
+    // Create sample data entries
+    const sampleData = [
+      { type: 'notes', content: 'Sample note 1' },
+      { type: 'notes', content: 'Sample note 2' },
+      { type: 'tasks', content: 'Sample task 1' },
+      { type: 'tasks', content: 'Sample task 2' }
+    ];
+    
+    const createdData = [];
+    sampleData.forEach(item => {
+      const result = dataStore.saveUserData(userId, item.type, item.content);
+      createdData.push(result);
+    });
+    
+    res.json({ 
+      message: 'Sample data created successfully',
+      created: createdData.length,
+      data: createdData
+    });
+  } catch (error) {
+    console.error('Create sample data error:', error);
+    res.status(500).json({ error: 'Failed to create sample data' });
+  }
+});
+
 // Graceful shutdown
 process.on('SIGINT', () => {
   console.log('Saving data before shutdown...');
