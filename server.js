@@ -4,7 +4,7 @@ const cors = require('cors');
 const jwt = require('jsonwebtoken');
 const { body, validationResult } = require('express-validator');
 const path = require('path');
-const DataStore = require('./data-store');
+const MongoDBStore = require('./mongodb-store');
 
 const app = express();
 const PORT = process.env.PORT || 3002;
@@ -15,10 +15,18 @@ app.use(cors());
 app.use(express.json());
 app.use(express.static('.'));
 
-// Initialize data store
-const dataStore = new DataStore();
-console.log('Data store initialized');
+// Initialize MongoDB store
+const dataStore = new MongoDBStore();
+console.log('MongoDB store initialized');
 console.log('Environment:', process.env.NODE_ENV || 'development');
+
+// Connect to MongoDB
+dataStore.connect().then(() => {
+  console.log('MongoDB connection established');
+}).catch(error => {
+  console.error('Failed to connect to MongoDB:', error);
+  process.exit(1);
+});
 
 // Validation middleware
 const validateRegistration = [
@@ -122,9 +130,9 @@ app.post('/api/login', validateLogin, async (req, res) => {
 });
 
 // Get user profile
-app.get('/api/profile', authenticateToken, (req, res) => {
+app.get('/api/profile', authenticateToken, async (req, res) => {
   try {
-    const user = dataStore.findUserById(req.user.id);
+    const user = await dataStore.findUserById(req.user.id);
     
     if (!user) {
       return res.status(404).json({ error: 'User not found' });
@@ -132,7 +140,7 @@ app.get('/api/profile', authenticateToken, (req, res) => {
     
     res.json({ 
       user: {
-        id: user.id,
+        id: user._id,
         username: user.username,
         created_at: user.created_at
       }
@@ -144,7 +152,7 @@ app.get('/api/profile', authenticateToken, (req, res) => {
 });
 
 // Save user data
-app.post('/api/data', authenticateToken, (req, res) => {
+app.post('/api/data', authenticateToken, async (req, res) => {
   const { dataType, dataContent } = req.body;
   
   if (!dataType || !dataContent) {
@@ -152,9 +160,9 @@ app.post('/api/data', authenticateToken, (req, res) => {
   }
 
   try {
-    const result = dataStore.saveUserData(req.user.id, dataType, dataContent);
+    const result = await dataStore.saveUserData(req.user.id, dataType, dataContent);
     
-    res.json({ message: 'Data saved successfully', id: result.id });
+    res.json({ message: 'Data saved successfully', id: result._id });
   } catch (error) {
     console.error('Save data error:', error);
     res.status(500).json({ error: 'Failed to save data' });
@@ -162,11 +170,11 @@ app.post('/api/data', authenticateToken, (req, res) => {
 });
 
 // Get user data
-app.get('/api/data/:dataType', authenticateToken, (req, res) => {
+app.get('/api/data/:dataType', authenticateToken, async (req, res) => {
   const { dataType } = req.params;
   
   try {
-    const data = dataStore.getUserData(req.user.id, dataType);
+    const data = await dataStore.getUserData(req.user.id, dataType);
     
     res.json({ data });
   } catch (error) {
@@ -176,9 +184,9 @@ app.get('/api/data/:dataType', authenticateToken, (req, res) => {
 });
 
 // Get all user data and summary
-app.get('/api/user/summary', authenticateToken, (req, res) => {
+app.get('/api/user/summary', authenticateToken, async (req, res) => {
   try {
-    const summary = dataStore.getUserSummary(req.user.id);
+    const summary = await dataStore.getUserSummary(req.user.id);
     
     if (!summary) {
       return res.status(404).json({ error: 'User not found' });
@@ -192,13 +200,13 @@ app.get('/api/user/summary', authenticateToken, (req, res) => {
 });
 
 // Get all user data
-app.get('/api/user/all-data', authenticateToken, (req, res) => {
+app.get('/api/user/all-data', authenticateToken, async (req, res) => {
   try {
-    const allData = dataStore.getAllUserData(req.user.id);
+    const allData = await dataStore.getAllUserData(req.user.id);
     
     res.json({ data: allData });
   } catch (error) {
-    console.error('Get all user data error:', error);
+  console.error('Get all user data error:', error);
     res.status(500).json({ error: 'Database error' });
   }
 });
@@ -217,21 +225,26 @@ app.listen(PORT, () => {
 });
 
 // Add a simple health check endpoint
-app.get('/api/health', (req, res) => {
-  const stats = dataStore.getStats();
-  res.json({ 
-    status: 'ok', 
-    timestamp: new Date().toISOString(),
-    environment: process.env.NODE_ENV || 'development',
-    stats
-  });
+app.get('/api/health', async (req, res) => {
+  try {
+    const stats = await dataStore.getStats();
+    res.json({ 
+      status: 'ok', 
+      timestamp: new Date().toISOString(),
+      environment: process.env.NODE_ENV || 'development',
+      stats
+    });
+  } catch (error) {
+    console.error('Health check error:', error);
+    res.status(500).json({ error: 'Health check failed' });
+  }
 });
 
 // Debug endpoint to see all data
-app.get('/api/debug', (req, res) => {
+app.get('/api/debug', async (req, res) => {
   try {
-    dataStore.debugData();
-    const stats = dataStore.getStats();
+    await dataStore.debugData();
+    const stats = await dataStore.getStats();
     res.json({ 
       message: 'Debug data logged to console',
       stats,
@@ -244,7 +257,7 @@ app.get('/api/debug', (req, res) => {
 });
 
 // Test endpoint to create sample data
-app.post('/api/test/create-sample-data', authenticateToken, (req, res) => {
+app.post('/api/test/create-sample-data', authenticateToken, async (req, res) => {
   try {
     const userId = req.user.id;
     
@@ -257,10 +270,10 @@ app.post('/api/test/create-sample-data', authenticateToken, (req, res) => {
     ];
     
     const createdData = [];
-    sampleData.forEach(item => {
-      const result = dataStore.saveUserData(userId, item.type, item.content);
+    for (const item of sampleData) {
+      const result = await dataStore.saveUserData(userId, item.type, item.content);
       createdData.push(result);
-    });
+    }
     
     res.json({ 
       message: 'Sample data created successfully',
@@ -274,8 +287,8 @@ app.post('/api/test/create-sample-data', authenticateToken, (req, res) => {
 });
 
 // Graceful shutdown
-process.on('SIGINT', () => {
-  console.log('Saving data before shutdown...');
-  dataStore.saveData();
+process.on('SIGINT', async () => {
+  console.log('Closing MongoDB connection...');
+  await dataStore.disconnect();
   process.exit(0);
 });
