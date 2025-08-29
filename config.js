@@ -4,7 +4,7 @@ const config = {
     API_BASE: 'http://localhost:3002/api'
   },
   production: {
-    API_BASE: 'https://benzox-backend.onrender.com/api'
+    API_BASE: 'https://benzox-app.onrender.com/api'
   }
 };
 
