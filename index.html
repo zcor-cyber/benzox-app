@@ -107,74 +107,82 @@
 
     <script type="text/javascript" src="https://replit.com/public/js/replit-dev-banner.js"></script>
     
-    <script src="/config.js"></script>
+    <!-- Firebase SDKs -->
+    <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-firestore-compat.js"></script>
+    <script src="/firebase-config.js"></script>
+    
     <script>
-      // Immediate authentication check
+      let currentUser = null;
+      let userData = [];
+
+      // Check authentication on page load
       function checkAuth() {
-        const token = localStorage.getItem("benzox_token");
-        const username = localStorage.getItem("benzox_username");
-        
-        if (!token || !username) {
-          // Not logged in, redirect to login immediately
-          window.location.href = "/login.html";
-          return;
-        }
-        
-        // Verify token with backend and sync user data
-        Promise.all([
-          fetch(window.APP_CONFIG.API_BASE.replace('/api', '') + '/api/profile', {
-            headers: {
-              'Authorization': `Bearer ${token}`
-            }
-          }),
-          fetch(window.APP_CONFIG.API_BASE.replace('/api', '') + '/api/user/all-data', {
-            headers: {
-              'Authorization': `Bearer ${token}`
-            }
-          })
-        ]).then(([profileResponse, dataResponse]) => {
-          if (profileResponse.ok && dataResponse.ok) {
-            // Token is valid, sync user data
-            dataResponse.json().then(userData => {
-              localStorage.setItem('benzox_user_data', JSON.stringify(userData.data));
-              console.log('User data synced on page load:', userData.data.length, 'items');
-            });
+        // Listen for auth state changes
+        auth.onAuthStateChanged(function(user) {
+          if (user) {
+            // User is signed in
+            currentUser = user;
+            console.log('User signed in:', user.email);
             
             // Show app
             document.getElementById("authCheck").style.display = "none";
             document.getElementById("logoutBtn").style.display = "block";
             document.getElementById("userInfo").style.display = "block";
-            document.getElementById("username").textContent = username;
+            document.getElementById("username").textContent = user.email || user.displayName || 'User';
             
             // Show the main app content
             document.getElementById("root").style.display = "block";
+            
+            // Load user data
+            loadUserData();
           } else {
-            // Token is invalid, redirect to login
-            localStorage.removeItem("benzox_token");
-            localStorage.removeItem("benzox_logged_in");
-            localStorage.removeItem("benzox_username");
-            localStorage.removeItem("benzox_user_id");
+            // User is signed out
+            currentUser = null;
+            userData = [];
+            console.log('User signed out');
+            
+            // Show login
+            document.getElementById("authCheck").style.display = "none";
+            document.getElementById("root").style.display = "none";
             window.location.href = "/login.html";
           }
-        }).catch(() => {
-          // Network error, redirect to login
-          localStorage.removeItem("benzox_token");
-          localStorage.removeItem("benzox_logged_in");
-          localStorage.removeItem("benzox_username");
-          localStorage.removeItem("benzox_user_id");
-          window.location.href = "/login.html";
         });
+      }
+
+      async function loadUserData() {
+        if (!currentUser) return;
+        
+        try {
+          const snapshot = await db.collection('users')
+            .doc(currentUser.uid)
+            .collection('data')
+            .orderBy('created_at', 'desc')
+            .get();
+          
+          userData = snapshot.docs.map(doc => ({
+            id: doc.id,
+            ...doc.data()
+          }));
+          
+          console.log('User data loaded:', userData.length, 'items');
+          // Store in localStorage for compatibility
+          localStorage.setItem('benzox_user_data', JSON.stringify(userData));
+        } catch (error) {
+          console.error('Error loading user data:', error);
+        }
       }
       
       function logout() {
-        // Clear login state
-        localStorage.removeItem("benzox_token");
-        localStorage.removeItem("benzox_logged_in");
-        localStorage.removeItem("benzox_username");
-        localStorage.removeItem("benzox_user_id");
-        
-        // Redirect to login
-        window.location.href = "/login.html";
+        auth.signOut().then(() => {
+          console.log('User signed out');
+          // Clear local data
+          localStorage.removeItem('benzox_user_data');
+          // Redirect will happen automatically via onAuthStateChanged
+        }).catch((error) => {
+          console.error('Error signing out:', error);
+        });
       }
       
       // Check authentication immediately when page loads
@@ -184,13 +192,6 @@
         
         // Check auth immediately
         checkAuth();
-      });
-      
-      // Also check on page visibility change (when user returns to tab)
-      document.addEventListener("visibilitychange", function() {
-        if (!document.hidden) {
-          checkAuth();
-        }
       });
     </script>
   </body>

@@ -1,0 +1,472 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1" />
+    <title>Benzox - Login</title>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      
+      body {
+        font-family: "SF Pro Display", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 20px;
+      }
+      
+      .login-container {
+        width: 100%;
+        max-width: 400px;
+      }
+      
+      .login-card {
+        background: rgba(255, 255, 255, 0.95);
+        backdrop-filter: blur(20px);
+        border-radius: 20px;
+        padding: 40px;
+        box-shadow: 0 25px 50px rgba(0, 0, 0, 0.1);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+      }
+      
+      .login-header {
+        text-align: center;
+        margin-bottom: 30px;
+      }
+      
+      .login-title {
+        font-size: 32px;
+        font-weight: 700;
+        color: #1f2937;
+        margin-bottom: 8px;
+      }
+      
+      .login-subtitle {
+        color: #6b7280;
+        font-size: 16px;
+      }
+      
+      .form-toggle {
+        display: flex;
+        background: #f3f4f6;
+        border-radius: 12px;
+        padding: 4px;
+        margin-bottom: 30px;
+      }
+      
+      .toggle-btn {
+        flex: 1;
+        padding: 12px 20px;
+        border: none;
+        background: transparent;
+        border-radius: 8px;
+        font-size: 14px;
+        font-weight: 600;
+        color: #6b7280;
+        cursor: pointer;
+        transition: all 0.2s ease;
+      }
+      
+      .toggle-btn.active {
+        background: white;
+        color: #3b82f6;
+        box-shadow: 0 2px 8px rgba(59, 130, 246, 0.15);
+      }
+      
+      .form-group {
+        margin-bottom: 20px;
+      }
+      
+      .form-label {
+        display: block;
+        margin-bottom: 8px;
+        font-weight: 600;
+        color: #374151;
+        font-size: 14px;
+      }
+      
+      .form-input {
+        width: 100%;
+        padding: 14px 16px;
+        border: 2px solid #e5e7eb;
+        border-radius: 12px;
+        font-size: 16px;
+        transition: all 0.2s ease;
+        background: white;
+      }
+      
+      .form-input:focus {
+        outline: none;
+        border-color: #3b82f6;
+        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+      }
+      
+      .submit-button {
+        width: 100%;
+        padding: 16px;
+        background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+        color: white;
+        border: none;
+        border-radius: 12px;
+        font-size: 16px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        margin-top: 10px;
+      }
+      
+      .submit-button:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 10px 25px rgba(59, 130, 246, 0.3);
+      }
+      
+      .submit-button:disabled {
+        opacity: 0.7;
+        cursor: not-allowed;
+        transform: none;
+      }
+      
+      .error-message {
+        background: #fef2f2;
+        border: 1px solid #fecaca;
+        color: #dc2626;
+        padding: 12px;
+        border-radius: 8px;
+        font-size: 14px;
+        text-align: center;
+        display: none;
+        margin-bottom: 20px;
+      }
+      
+      .success-message {
+        background: #f0fdf4;
+        border: 1px solid #bbf7d0;
+        color: #16a34a;
+        padding: 12px;
+        border-radius: 8px;
+        font-size: 14px;
+        text-align: center;
+        display: none;
+        margin-bottom: 20px;
+      }
+      
+      .loading {
+        display: inline-block;
+        width: 16px;
+        height: 16px;
+        border: 2px solid #ffffff40;
+        border-radius: 50%;
+        border-top-color: #fff;
+        animation: spin 1s ease-in-out infinite;
+        margin-right: 8px;
+      }
+      
+      @keyframes spin {
+        to { transform: rotate(360deg); }
+      }
+      
+      .login-form, .register-form {
+        display: none;
+      }
+      
+      .login-form.active, .register-form.active {
+        display: block;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="login-container">
+      <div class="login-card">
+        <div class="login-header">
+          <h1 class="login-title">Benzox</h1>
+          <p class="login-subtitle">Logg inn eller registrer deg</p>
+        </div>
+        
+        <div class="form-toggle">
+          <button class="toggle-btn active" onclick="showForm('login')">Logg inn</button>
+          <button class="toggle-btn" onclick="showForm('register')">Registrer</button>
+        </div>
+        
+        <div id="errorMessage" class="error-message"></div>
+        <div id="successMessage" class="success-message"></div>
+        
+        <!-- Login Form -->
+        <form class="login-form active" id="loginForm">
+          <div class="form-group">
+            <label for="loginEmail" class="form-label">E-post</label>
+            <input 
+              type="email" 
+              id="loginEmail" 
+              name="email" 
+              class="form-input" 
+              placeholder="Skriv inn din e-post"
+              required
+            >
+          </div>
+          
+          <div class="form-group">
+            <label for="loginPassword" class="form-label">Passord</label>
+            <input 
+              type="password" 
+              id="loginPassword" 
+              name="password" 
+              class="form-input" 
+              placeholder="Skriv inn passord"
+              required
+            >
+          </div>
+          
+          <button type="submit" class="submit-button" id="loginBtn">
+            <span class="btn-text">Logg inn</span>
+          </button>
+        </form>
+        
+        <!-- Register Form -->
+        <form class="register-form" id="registerForm">
+          <div class="form-group">
+            <label for="registerEmail" class="form-label">E-post</label>
+            <input 
+              type="email" 
+              id="registerEmail" 
+              name="email" 
+              class="form-input" 
+              placeholder="Skriv inn din e-post"
+              required
+            >
+          </div>
+          
+          <div class="form-group">
+            <label for="registerPassword" class="form-label">Passord</label>
+            <input 
+              type="password" 
+              id="registerPassword" 
+              name="password" 
+              class="form-input" 
+              placeholder="Velg et passord (minst 6 tegn)"
+              required
+            >
+          </div>
+          
+          <button type="submit" class="submit-button" id="registerBtn">
+            <span class="btn-text">Registrer deg</span>
+          </button>
+        </form>
+      </div>
+    </div>
+
+    <!-- Firebase SDKs -->
+    <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-firestore-compat.js"></script>
+    <script src="/firebase-config.js"></script>
+    
+    <script>
+      // Form toggle functionality
+      function showForm(formType) {
+        const loginForm = document.getElementById('loginForm');
+        const registerForm = document.getElementById('registerForm');
+        const loginBtn = document.querySelector('.toggle-btn:first-child');
+        const registerBtn = document.querySelector('.toggle-btn:last-child');
+        
+        if (formType === 'login') {
+          loginForm.classList.add('active');
+          registerForm.classList.remove('active');
+          loginBtn.classList.add('active');
+          registerBtn.classList.remove('active');
+        } else {
+          loginForm.classList.remove('active');
+          registerForm.classList.add('active');
+          loginBtn.classList.remove('active');
+          registerBtn.classList.add('active');
+        }
+        
+        // Clear messages
+        hideMessages();
+      }
+      
+      // Message handling
+      function showError(message) {
+        const errorDiv = document.getElementById('errorMessage');
+        errorDiv.textContent = message;
+        errorDiv.style.display = 'block';
+        setTimeout(() => errorDiv.style.display = 'none', 5000);
+      }
+      
+      function showSuccess(message) {
+        const successDiv = document.getElementById('successMessage');
+        successDiv.textContent = message;
+        successDiv.style.display = 'block';
+        setTimeout(() => successDiv.style.display = 'none', 3000);
+      }
+      
+      function hideMessages() {
+        document.getElementById('errorMessage').style.display = 'none';
+        document.getElementById('successMessage').style.display = 'none';
+      }
+      
+      // Loading state
+      function setLoading(button, isLoading) {
+        const btnText = button.querySelector('.btn-text');
+        if (isLoading) {
+          button.disabled = true;
+          btnText.innerHTML = '<span class="loading"></span>Laster...';
+        } else {
+          button.disabled = false;
+          btnText.textContent = button.id === 'loginBtn' ? 'Logg inn' : 'Registrer deg';
+        }
+      }
+      
+      // Login form submission
+      document.getElementById('loginForm').addEventListener('submit', async function(e) {
+        e.preventDefault();
+        
+        const button = document.getElementById('loginBtn');
+        const email = document.getElementById('loginEmail').value.trim();
+        const password = document.getElementById('loginPassword').value.trim();
+        
+        if (!email || !password) {
+          showError('Vennligst fyll ut alle feltene');
+          return;
+        }
+        
+        setLoading(button, true);
+        
+        try {
+          showSuccess('Logger inn...');
+          
+          // Sign in with Firebase
+          const userCredential = await auth.signInWithEmailAndPassword(email, password);
+          const user = userCredential.user;
+          
+          showSuccess('Innlogging vellykket! Laster data...');
+          
+          // Load user data
+          await loadUserData(user);
+          
+          showSuccess('Data lastet! Omdirigerer...');
+          
+          // Redirect to main app
+          setTimeout(() => {
+            window.location.href = '/';
+          }, 2000);
+          
+        } catch (error) {
+          console.error('Login error:', error);
+          let errorMessage = 'Innlogging mislyktes';
+          
+          if (error.code === 'auth/user-not-found') {
+            errorMessage = 'Bruker ikke funnet. Vennligst registrer deg først.';
+          } else if (error.code === 'auth/wrong-password') {
+            errorMessage = 'Feil passord.';
+          } else if (error.code === 'auth/invalid-email') {
+            errorMessage = 'Ugyldig e-post format.';
+          }
+          
+          showError(errorMessage);
+        } finally {
+          setLoading(button, false);
+        }
+      });
+      
+      // Register form submission
+      document.getElementById('registerForm').addEventListener('submit', async function(e) {
+        e.preventDefault();
+        
+        const button = document.getElementById('registerBtn');
+        const email = document.getElementById('registerEmail').value.trim();
+        const password = document.getElementById('registerPassword').value.trim();
+        
+        if (!email || !password) {
+          showError('Vennligst fyll ut alle feltene');
+          return;
+        }
+        
+        if (password.length < 6) {
+          showError('Passord må være minst 6 tegn');
+          return;
+        }
+        
+        setLoading(button, true);
+        
+        try {
+          showSuccess('Oppretter konto...');
+          
+          // Create user with Firebase
+          const userCredential = await auth.createUserWithEmailAndPassword(email, password);
+          const user = userCredential.user;
+          
+          showSuccess('Konto opprettet! Setter opp profil...');
+          
+          // Create user profile in Firestore
+          await db.collection('users').doc(user.uid).set({
+            email: user.email,
+            created_at: new Date(),
+            username: email.split('@')[0] // Use email prefix as username
+          });
+          
+          showSuccess('Profil opprettet! Omdirigerer...');
+          
+          // Redirect to main app
+          setTimeout(() => {
+            window.location.href = '/';
+          }, 2000);
+          
+        } catch (error) {
+          console.error('Registration error:', error);
+          let errorMessage = 'Registrering mislyktes';
+          
+          if (error.code === 'auth/email-already-in-use') {
+            errorMessage = 'E-post allerede registrert. Vennligst logg inn i stedet.';
+          } else if (error.code === 'auth/weak-password') {
+            errorMessage = 'Passordet er for svakt.';
+          } else if (error.code === 'auth/invalid-email') {
+            errorMessage = 'Ugyldig e-post format.';
+          }
+          
+          showError(errorMessage);
+        } finally {
+          setLoading(button, false);
+        }
+      });
+
+      async function loadUserData(user) {
+        try {
+          const snapshot = await db.collection('users')
+            .doc(user.uid)
+            .collection('data')
+            .orderBy('created_at', 'desc')
+            .get();
+          
+          const userData = snapshot.docs.map(doc => ({
+            id: doc.id,
+            ...doc.data()
+          }));
+          
+          // Store in localStorage for compatibility
+          localStorage.setItem('benzox_user_data', JSON.stringify(userData));
+          console.log('User data loaded:', userData.length, 'items');
+          
+        } catch (error) {
+          console.error('Error loading user data:', error);
+        }
+      }
+      
+      // Check if user is already logged in
+      window.addEventListener('DOMContentLoaded', function() {
+        // Listen for auth state changes
+        auth.onAuthStateChanged(function(user) {
+          if (user) {
+            // User is already signed in, redirect to main app
+            window.location.href = '/';
+          }
+        });
+      });
+    </script>
+  </body>
+</html>
