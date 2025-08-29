@@ -1,7 +1,7 @@
 // Configuration for different environments
 const config = {
   development: {
-    API_BASE: 'http://localhost:3001/api'
+    API_BASE: 'http://localhost:3002/api'
   },
   production: {
     API_BASE: 'https://benzox-backend.onrender.com/api'

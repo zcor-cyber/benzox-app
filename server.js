@@ -7,7 +7,7 @@ const { body, validationResult } = require('express-validator');
 const path = require('path');
 
 const app = express();
-const PORT = process.env.PORT || 3001;
+const PORT = process.env.PORT || 3002;
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-production';
 
 // Production database path
@@ -125,7 +125,7 @@ app.post('/api/login', validateLogin, (req, res) => {
 
   const { username, password } = req.body;
 
-  db.get('SELECT * FROM users WHERE username = ? OR email = ?', [username, username], async (err, user) => {
+  db.get('SELECT * FROM users WHERE username = ?', [username], async (err, user) => {
     if (err) {
       return res.status(500).json({ error: 'Database error' });
     }
