@@ -185,7 +185,7 @@ app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
   console.log(`App available at: http://localhost:${PORT}`);
   console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
-  console.log(`Database path: ${DB_PATH}`);
+  console.log(`Data store path: ${dataStore.dataPath}`);
 });
 
 // Add a simple health check endpoint
